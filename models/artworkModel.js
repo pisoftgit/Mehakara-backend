@@ -140,6 +140,12 @@ const artworkSchema = new mongoose.Schema({
     required: true
   },
 
+  artworkCode: {
+  type: String,
+  unique: true,
+  required: true
+},
+
   nestedSubCategory: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "NestedSubCategory"

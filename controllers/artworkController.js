@@ -347,8 +347,15 @@
 
 // };
 
-
 const Artwork = require('../models/artworkModel')
+
+/* GENERATE RANDOM ARTWORK CODE */
+const generateArtworkCode = () => {
+  return Math.random()
+    .toString(36)
+    .substring(2, 8)
+    .toUpperCase()
+}
 
 /* CREATE ARTWORK */
 
@@ -361,7 +368,9 @@ exports.createArtwork = async (req, res) => {
       })
     }
 
-    const imagePaths = req.files ? req.files.map(file => file.path) : []
+    const imagePaths = req.files
+      ? req.files.map(file => file.path.replace(/\\/g, '/'))
+      : []
 
     const price = Number(req.body.price)
 
@@ -374,13 +383,25 @@ exports.createArtwork = async (req, res) => {
 
     const currency = req.body.currency || 'USD'
 
+    /* GENERATE UNIQUE ARTWORK CODE */
+
+    let artworkCode
+    let exists = true
+
+    while (exists) {
+      artworkCode = generateArtworkCode()
+      const existing = await Artwork.findOne({ artworkCode })
+      if (!existing) exists = false
+    }
+
     const artwork = await Artwork.create({
+      artworkCode,
       artist: req.user.id,
       title: req.body.title,
       description: req.body.description,
       price,
       currency,
-      basePriceUSD: price, // future conversion system will update this
+      basePriceUSD: price,
       category: req.body.categoryId || req.body.category,
       subCategory: req.body.subCategoryId || req.body.subCategory,
       nestedSubCategory: req.body.nestedSubCategoryId || req.body.nestedSubCategory,
@@ -435,8 +456,6 @@ exports.getArtworks = async (req, res) => {
       isAvailable: true
     }
 
-    /* FILTERS */
-
     if (category) query.category = category
     if (subCategory) query.subCategory = subCategory
     if (nestedSubCategory) query.nestedSubCategory = nestedSubCategory
@@ -445,29 +464,21 @@ exports.getArtworks = async (req, res) => {
     if (orientation) query.orientation = orientation
     if (theme) query.theme = theme
 
-    /* PRICE FILTER */
-
     if (priceMin || priceMax) {
       query.price = {}
       if (priceMin) query.price.$gte = Number(priceMin)
       if (priceMax) query.price.$lte = Number(priceMax)
     }
 
-    /* SEARCH */
-
     if (search) {
       query.title = { $regex: search, $options: 'i' }
     }
-
-    /* SORTING */
 
     let sortOption = { createdAt: -1 }
 
     if (sort === 'priceLow') sortOption = { price: 1 }
     if (sort === 'priceHigh') sortOption = { price: -1 }
     if (sort === 'oldest') sortOption = { createdAt: 1 }
-
-    /* PAGINATION */
 
     const skip = (pageNumber - 1) * limitNumber
 
@@ -563,23 +574,25 @@ exports.updateArtwork = async (req, res) => {
       })
     }
 
-    const imagePaths = req.files ? req.files.map(file => file.path) : []
+    const imagePaths = req.files
+      ? req.files.map(file => file.path.replace(/\\/g, '/'))
+      : []
 
     if (imagePaths.length > 0) {
       artwork.images = [...artwork.images, ...imagePaths]
     }
 
-    /* prevent manual manipulation of base price */
     delete req.body.basePriceUSD
+    delete req.body.artworkCode
 
-    if (req.body.categoryId) req.body.category = req.body.categoryId;
-    if (req.body.subCategoryId) req.body.subCategory = req.body.subCategoryId;
-    if (req.body.nestedSubCategoryId) req.body.nestedSubCategory = req.body.nestedSubCategoryId;
-    if (req.body.sizeId) req.body.size = req.body.sizeId;
-    if (req.body.orientationId) req.body.orientation = req.body.orientationId;
-    if (req.body.mediumId) req.body.medium = req.body.mediumId;
-    if (req.body.materialId) req.body.material = req.body.materialId;
-    if (req.body.themeId) req.body.theme = req.body.themeId;
+    if (req.body.categoryId) req.body.category = req.body.categoryId
+    if (req.body.subCategoryId) req.body.subCategory = req.body.subCategoryId
+    if (req.body.nestedSubCategoryId) req.body.nestedSubCategory = req.body.nestedSubCategoryId
+    if (req.body.sizeId) req.body.size = req.body.sizeId
+    if (req.body.orientationId) req.body.orientation = req.body.orientationId
+    if (req.body.mediumId) req.body.medium = req.body.mediumId
+    if (req.body.materialId) req.body.material = req.body.materialId
+    if (req.body.themeId) req.body.theme = req.body.themeId
 
     Object.assign(artwork, req.body)
 
@@ -640,6 +653,7 @@ exports.deleteArtwork = async (req, res) => {
 }
 
 /* GET ALL ARTWORKS FOR ADMIN */
+
 exports.getAllArtworksAdmin = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -668,6 +682,7 @@ exports.getAllArtworksAdmin = async (req, res) => {
     })
   } catch (error) {
     console.error('GET ADMIN ARTWORKS ERROR:', error)
+
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -676,6 +691,7 @@ exports.getAllArtworksAdmin = async (req, res) => {
 }
 
 /* GET ARTIST ARTWORKS */
+
 exports.getMyArtworks = async (req, res) => {
   try {
     const artworks = await Artwork.find({ artist: req.user.id })
@@ -696,6 +712,7 @@ exports.getMyArtworks = async (req, res) => {
     })
   } catch (error) {
     console.error('GET MY ARTWORKS ERROR:', error)
+
     res.status(500).json({
       success: false,
       message: 'Server error'
