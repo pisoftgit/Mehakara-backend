@@ -1,4 +1,4 @@
-const Orientation = require('../models/orientationModel');
+const Orientation = require('../models/OrientationModel');
 
 
 /**
