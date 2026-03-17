@@ -78,6 +78,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/currencies', currencyRoutes);
+app.use('/api/inquiries', currencyRoutes);
 
 
 
