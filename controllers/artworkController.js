@@ -383,6 +383,16 @@ exports.createArtwork = async (req, res) => {
 
     const currency = req.body.currency || 'USD'
 
+    // Calculate base price in USD for consistent storage
+    let basePriceUSD = price;
+    if (currency !== 'USD') {
+      const Currency = require('../models/currencyModel');
+      const artworkCurrency = await Currency.findOne({ code: currency.toUpperCase(), isActive: true });
+      if (artworkCurrency) {
+        basePriceUSD = price / artworkCurrency.exchangeRate;
+      }
+    }
+
     /* GENERATE UNIQUE ARTWORK CODE */
 
     let artworkCode
@@ -401,7 +411,7 @@ exports.createArtwork = async (req, res) => {
       description: req.body.description,
       price,
       currency,
-      basePriceUSD: price,
+      basePriceUSD: Number(basePriceUSD.toFixed(2)),
       category: req.body.categoryId || req.body.category,
       subCategory: req.body.subCategoryId || req.body.subCategory,
       nestedSubCategory: req.body.nestedSubCategoryId || req.body.nestedSubCategory,

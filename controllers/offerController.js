@@ -5,33 +5,74 @@ const Artwork = require('../models/artworkModel');
 // Create a new offer
 exports.createOffer = async (req, res) => {
   try {
-    const { artworkId, proposedPrice, notes, shippingAddress } = req.body;
+    const { artworkId, proposedPrice, proposedCurrency, notes, shippingAddress } = req.body;
     const buyerId = req.user._id;
+
+    // Validate required fields
+    if (!proposedPrice || !proposedCurrency) {
+      return res.status(400).json({
+        success: false,
+        message: 'Proposed price and currency are required'
+      });
+    }
 
     const artwork = await Artwork.findById(artworkId);
     if (!artwork) {
       return res.status(404).json({ success: false, message: 'Artwork not found' });
     }
 
-    // Check for existing accepted offer
-    const existingAccepted = await Offer.findOne({ 
-      buyerId, 
-      artworkId, 
-      status: 'accepted' 
-    });
-    if (existingAccepted) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'You already have an accepted offer for this artwork. Please proceed to checkout.' 
+    // Prevent artists from placing offers on their own artworks
+    if (artwork.artist.toString() === buyerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You cannot place an offer on your own artwork'
       });
     }
+
+    // Check for existing accepted offer
+    const existingAccepted = await Offer.findOne({
+      buyerId,
+      artworkId,
+      status: 'accepted'
+    });
+    if (existingAccepted) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have an accepted offer for this artwork. Please proceed to checkout.'
+      });
+    }
+
+    // Get currency information for conversion
+    const Currency = require('../models/currencyModel');
+    const buyerCurrency = await Currency.findOne({ code: proposedCurrency.toUpperCase(), isActive: true });
+    const artworkCurrency = await Currency.findOne({ code: artwork.currency.toUpperCase(), isActive: true });
+
+    if (!buyerCurrency || !artworkCurrency) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid currency'
+      });
+    }
+
+    // Convert proposed price to artwork's currency
+    const convertedAmount = (proposedPrice / buyerCurrency.exchangeRate) * artworkCurrency.exchangeRate;
 
     const offer = await Offer.create({
       artworkId,
       buyerId,
       artistId: artwork.artist,
-      proposedPrice,
-      originalPrice: artwork.price,
+      proposedPrice: {
+        amount: Number(proposedPrice),
+        currency: proposedCurrency.toUpperCase()
+      },
+      convertedPrice: {
+        amount: Number(convertedAmount.toFixed(2)),
+        currency: artwork.currency
+      },
+      originalPrice: {
+        amount: artwork.price,
+        currency: artwork.currency
+      },
       notes,
       shippingAddress
     });
@@ -41,7 +82,7 @@ exports.createOffer = async (req, res) => {
       recipientId: artwork.artist,
       type: 'offer_received',
       title: 'New Offer Received',
-      message: `You received a $${proposedPrice} offer for "${artwork.title}"`,
+      message: `You received a ${buyerCurrency.symbol}${proposedPrice} (${artworkCurrency.symbol}${convertedAmount.toFixed(2)}) offer for "${artwork.title}"`,
       artworkId: artwork._id,
       relatedUserId: buyerId,
       actionUrl: `/offers` // Dedicated offers page in admin panel

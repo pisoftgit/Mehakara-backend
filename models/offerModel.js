@@ -17,13 +17,44 @@ const offerSchema = new mongoose.Schema(
       ref: 'User',
       required: true
     },
+    // Buyer's offered price in their selected currency
     proposedPrice: {
-      type: Number,
-      required: true
+      amount: {
+        type: Number,
+        required: true
+      },
+      currency: {
+        type: String,
+        required: true,
+        uppercase: true,
+        trim: true
+      }
     },
+    // Converted price in artwork's original currency
+    convertedPrice: {
+      amount: {
+        type: Number,
+        required: true
+      },
+      currency: {
+        type: String,
+        required: true,
+        uppercase: true,
+        trim: true
+      }
+    },
+    // Original artwork price (for reference)
     originalPrice: {
-      type: Number,
-      required: true
+      amount: {
+        type: Number,
+        required: true
+      },
+      currency: {
+        type: String,
+        required: true,
+        uppercase: true,
+        trim: true
+      }
     },
     status: {
       type: String,

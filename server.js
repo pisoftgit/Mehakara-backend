@@ -52,6 +52,7 @@ const artworkRoutes = require('./routes/artworkRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const offerRoutes = require('./routes/offerRoutes');
+const currencyRoutes = require('./routes/currencyRoutes');
 
 
 
@@ -76,6 +77,7 @@ app.use('/api/artworks', artworkRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/currencies', currencyRoutes);
 
 
 
