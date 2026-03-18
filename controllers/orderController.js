@@ -46,8 +46,9 @@ exports.createOrder = async (req, res) => {
     }
     
     // Security check: Only apply negotiated price if there's a valid accepted offer
-    let finalPrice = originalPrice;
-    
+    let finalPriceAmount = Number(originalPrice);
+    let finalPriceCurrency = artwork.currency || 'USD';
+
     // Check if there is an accepted offer for this buyer and artwork
     const Offer = require('../models/offerModel');
     const acceptedOffer = await Offer.findOne({
@@ -57,29 +58,36 @@ exports.createOrder = async (req, res) => {
     });
 
     if (acceptedOffer) {
-      finalPrice = acceptedOffer.proposedPrice;
+      // proposedPrice in offerModel is stored as { amount: Number, currency: String }
+      const pp = acceptedOffer.proposedPrice;
+      if (pp && typeof pp === 'object' && pp.amount !== undefined) {
+        finalPriceAmount = Number(pp.amount);
+        finalPriceCurrency = pp.currency || finalPriceCurrency;
+      } else {
+        finalPriceAmount = Number(pp);
+      }
     } else if (proposedPrice && isOffer) {
-      finalPrice = Number(proposedPrice);
+      finalPriceAmount = Number(proposedPrice);
     }
-    
-    const totalAmount = finalPrice * quantity;
+
+    const totalAmount = finalPriceAmount * Number(quantity || 1);
 
     // Create order
     const order = new Order({
       artworkId,
       artistId,
       buyerId,
-      quantity,
+      quantity: Number(quantity || 1),
       price: {
-        amount: finalPrice,
-        currency: 'USD'
+        amount: finalPriceAmount,
+        currency: finalPriceCurrency
       },
       totalAmount,
       shippingAddress,
       notes,
       isOffer: !!isOffer,
       proposedPrice: isOffer ? Number(proposedPrice) : undefined,
-      originalPrice,
+      originalPrice: Number(originalPrice),
       status: isOffer ? 'offered' : 'pending'
     });
 
