@@ -111,7 +111,7 @@ exports.getArtistOffers = async (req, res) => {
 // Update offer status (Artist)
 exports.updateOfferStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, declineReason } = req.body;
     if (!['accepted', 'rejected'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
@@ -127,7 +127,15 @@ exports.updateOfferStatus = async (req, res) => {
     }
 
     offer.status = status;
+    if (status === 'rejected' && declineReason) {
+      offer.declineReason = declineReason;
+    }
     await offer.save();
+
+    // Build buyer notification message
+    const rejectedMsg = declineReason
+      ? `Your offer for "${offer.artworkId.title}" was declined. Reason: ${declineReason}`
+      : `Your offer for "${offer.artworkId.title}" was declined by the artist.`;
 
     // Notify buyer
     await Notification.create({
@@ -136,7 +144,7 @@ exports.updateOfferStatus = async (req, res) => {
       title: status === 'accepted' ? 'Offer Accepted!' : 'Offer Declined',
       message: status === 'accepted' 
         ? `Great news! Your offer for "${offer.artworkId.title}" was accepted. You can now proceed to checkout.`
-        : `Your offer for "${offer.artworkId.title}" was declined by the artist.`,
+        : rejectedMsg,
       artworkId: offer.artworkId._id,
       relatedUserId: req.user._id,
       actionUrl: status === 'accepted' ? '/my-orders' : '/explore-artwork'

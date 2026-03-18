@@ -61,6 +61,10 @@ const offerSchema = new mongoose.Schema(
       enum: ['pending', 'accepted', 'rejected', 'completed'],
       default: 'pending'
     },
+    declineReason: {
+      type: String,
+      trim: true
+    },
     notes: {
       type: String,
       trim: true

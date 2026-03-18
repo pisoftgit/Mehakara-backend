@@ -25,6 +25,12 @@ router.get(
 
 router.get("/:id", artworkController.getArtworkById);
 
+router.patch(
+  "/:id/toggle-availability",
+  protect,
+  artworkController.toggleAvailability
+);
+
 router.put(
   "/:id",
   protect,

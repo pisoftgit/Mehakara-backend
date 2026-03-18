@@ -396,3 +396,30 @@ exports.getMyArtworks = async (req, res) => {
     })
   }
 }
+
+/* TOGGLE ARTWORK AVAILABILITY (Artist only) */
+exports.toggleAvailability = async (req, res) => {
+  try {
+    const artwork = await Artwork.findById(req.params.id)
+
+    if (!artwork) {
+      return res.status(404).json({ success: false, message: 'Artwork not found' })
+    }
+
+    if (artwork.artist.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' })
+    }
+
+    artwork.isAvailable = !artwork.isAvailable
+    await artwork.save()
+
+    res.status(200).json({
+      success: true,
+      message: `Artwork marked as ${artwork.isAvailable ? 'available' : 'not available'}`,
+      isAvailable: artwork.isAvailable
+    })
+  } catch (error) {
+    console.error('TOGGLE AVAILABILITY ERROR:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+}

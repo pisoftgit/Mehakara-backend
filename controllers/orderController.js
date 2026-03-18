@@ -28,6 +28,22 @@ exports.createOrder = async (req, res) => {
 
     const artistId = artwork.artistId || artwork.artist;
     const originalPrice = artwork.price;
+
+    // Prevent artist from ordering their own artwork
+    if (artistId.toString() === buyerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You cannot place an order on your own artwork'
+      });
+    }
+
+    // Reject orders for artworks marked as unavailable
+    if (!artwork.isAvailable) {
+      return res.status(400).json({
+        success: false,
+        message: 'This artwork is not available for purchase'
+      });
+    }
     
     // Security check: Only apply negotiated price if there's a valid accepted offer
     let finalPrice = originalPrice;
