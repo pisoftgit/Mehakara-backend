@@ -53,6 +53,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const offerRoutes = require('./routes/offerRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
+const inquiriesRoutes = require('./routes/inquiryRoutes');
 
 
 
@@ -78,7 +79,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/currencies', currencyRoutes);
-app.use('/api/inquiries', currencyRoutes);
+app.use('/api/inquiries',inquiriesRoutes );
 
 
 
