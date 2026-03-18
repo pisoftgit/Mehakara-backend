@@ -12,7 +12,9 @@ exports.createOrder = async (req, res) => {
       shippingAddress,
       notes,
       isOffer,
-      proposedPrice
+      proposedPrice,
+      buyerPrice,
+      buyerCurrency
     } = req.body;
 
     const buyerId = req.user._id;
@@ -66,6 +68,10 @@ exports.createOrder = async (req, res) => {
       } else {
         finalPriceAmount = Number(pp);
       }
+    } else if (buyerPrice && buyerCurrency) {
+      // Direct purchase: use the price the buyer actually saw (already converted on frontend)
+      finalPriceAmount = Number(buyerPrice);
+      finalPriceCurrency = buyerCurrency;
     } else if (proposedPrice && isOffer) {
       finalPriceAmount = Number(proposedPrice);
     }
