@@ -12,7 +12,14 @@ router.post('/', protect, bidController.placeBid);
 // Get my bids (PROTECTED)
 router.get('/my-bids', protect, bidController.getUserBids);
 
+// Get bids on my artworks (ARTIST)
+router.get('/artist/my-artworks', protect, bidController.getArtistBids);
+
+
 // Withdraw a bid (PROTECTED)
 router.patch('/:bidId/withdraw', protect, bidController.withdrawBid);
+
+// Get all bids (ADMIN)
+router.get('/admin/all', protect, bidController.getAllBidsAdmin);
 
 module.exports = router;

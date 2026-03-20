@@ -64,18 +64,18 @@ exports.createOffer = async (req, res) => {
       artistId: artwork.artist,
       proposedPrice: {
         amount: Number(proposedPrice),
-        currency: proposedCurrency.toUpperCase()
+        currency: (proposedCurrency || 'USD').toUpperCase()
       },
       convertedPrice: {
-        amount: Number(convertedAmount.toFixed(2)),
-        currency: artwork.currency
+        amount: Number(convertedAmount.toFixed(2)) || 0,
+        currency: artwork.currency || 'USD'
       },
       originalPrice: {
-        amount: artwork.price,
-        currency: artwork.currency
+        amount: artwork.price || 0,
+        currency: artwork.currency || 'USD'
       },
-      notes,
-      shippingAddress
+      notes: notes || '',
+      shippingAddress: shippingAddress || {}
     });
 
     // --- INTEGRATE WITH BIDDING SYSTEM ---

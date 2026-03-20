@@ -179,6 +179,23 @@ exports.getUserBids = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// --- 3.1 GET BIDS FOR ARTIST'S ARTWORKS (FOR ARTIST PANEL) ---
+exports.getArtistBids = async (req, res) => {
+  try {
+    const artworks = await Artwork.find({ artist: req.user._id }).select('_id');
+    const artworkIds = artworks.map(a => a._id);
+
+    const bids = await Bid.find({ artworkId: { $in: artworkIds } })
+      .populate('artworkId', 'title images price')
+      .populate('bidderId', 'name email')
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, data: bids });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 // --- 4. WITHDRAW A BID ---
 exports.withdrawBid = async (req, res) => {
   try {
@@ -239,6 +256,18 @@ exports.withdrawBid = async (req, res) => {
       highestBid: artwork.highestBid 
     });
 
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+// --- 5. GET ALL BIDS (ADMIN) ---
+exports.getAllBidsAdmin = async (req, res) => {
+  try {
+    const bids = await Bid.find()
+      .populate('artworkId', 'title images price artist')
+      .populate('bidderId', 'name email')
+      .sort('-createdAt');
+    res.status(200).json({ success: true, data: bids });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
