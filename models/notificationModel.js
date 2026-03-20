@@ -19,7 +19,9 @@ const notificationSchema = new mongoose.Schema(
         'artwork_purchased',
         'offer_received',
         'offer_accepted',
-        'offer_rejected'
+        'offer_rejected',
+        'bid_received',
+        'outbid'
       ],
       required: true
     },

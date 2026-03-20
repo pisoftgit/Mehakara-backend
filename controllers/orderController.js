@@ -274,6 +274,17 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
+    // --- NEW: If order is confirmed, mark artwork as sold ---
+    if (status === 'confirmed') {
+      const Artwork = require('../models/artworkModel');
+      await Artwork.findByIdAndUpdate(order.artworkId._id, {
+        isAvailable: false,
+        isSold: true,
+        soldTo: order.buyerId._id,
+        soldAt: new Date()
+      });
+    }
+
     // Create notification for buyer
     await Notification.create({
       recipientId: order.buyerId._id,

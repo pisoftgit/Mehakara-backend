@@ -1,4 +1,5 @@
 const Offer = require('../models/offerModel');
+const Bid = require('../models/bidModel');
 const Notification = require('../models/notificationModel');
 const Artwork = require('../models/artworkModel');
 
@@ -77,15 +78,49 @@ exports.createOffer = async (req, res) => {
       shippingAddress
     });
 
+    // --- INTEGRATE WITH BIDDING SYSTEM ---
+    // If the offer is higher than current highest bid, update it
+    const currentHighestAmount = artwork.highestBid?.amount || artwork.price;
+    
+    // Create a Bid record so it shows up in history
+    const newBid = await Bid.create({
+      artworkId,
+      bidderId: buyerId,
+      bidAmount: {
+        amount: Number(proposedPrice),
+        currency: proposedCurrency.toUpperCase()
+      },
+      convertedAmount: {
+        amount: Number(convertedAmount.toFixed(2)),
+        currency: artwork.currency
+      },
+      status: 'active' // Offers are active bids
+    });
+
+    if (convertedAmount > currentHighestAmount) {
+      artwork.highestBid = {
+        amount: Number(convertedAmount.toFixed(2)),
+        currency: artwork.currency,
+        bidId: newBid._id
+      };
+      artwork.highestBidder = buyerId;
+      artwork.bidCount += 1;
+      await artwork.save();
+    } else {
+      // Still increment bid count even if not highest (it's a proposal)
+      artwork.bidCount += 1;
+      await artwork.save();
+    }
+
     // Create notification for artist
     await Notification.create({
       recipientId: artwork.artist,
-      type: 'offer_received',
-      title: 'New Offer Received',
-      message: `You received a ${buyerCurrency.symbol}${proposedPrice} (${artworkCurrency.symbol}${convertedAmount.toFixed(2)}) offer for "${artwork.title}"`,
+      type: 'bid_received', // Use bid_received to unify
+      title: 'New Price Proposal',
+      message: `You received a ${buyerCurrency.symbol}${proposedPrice} proposal for "${artwork.title}"`,
       artworkId: artwork._id,
       relatedUserId: buyerId,
-      actionUrl: `/offers` // Dedicated offers page in admin panel
+      actionUrl: `/artwork/${artwork._id}`
     });
 
     res.status(201).json({ success: true, data: offer });
@@ -164,6 +199,31 @@ exports.getUserOffers = async (req, res) => {
       .sort('-createdAt');
 
     res.status(200).json({ success: true, data: offers });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+// Withdraw offer (Buyer)
+exports.withdrawOffer = async (req, res) => {
+  try {
+    const offer = await Offer.findById(req.params.id);
+    if (!offer) {
+      return res.status(404).json({ success: false, message: 'Offer not found' });
+    }
+
+    // Security check: only the buyer can withdraw the offer
+    if (offer.buyerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (offer.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Offer cannot be withdrawn because it is already ${offer.status}` });
+    }
+
+    offer.status = 'cancelled';
+    await offer.save();
+
+    res.status(200).json({ success: true, message: 'Offer withdrawn successfully', data: offer });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

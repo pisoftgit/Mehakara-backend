@@ -192,6 +192,66 @@ const artworkSchema = new mongoose.Schema({
   isAvailable: {
     type: Boolean,
     default: true
+  },
+
+  // --- Bidding Support ---
+  isAuction: {
+    type: Boolean,
+    default: false
+  },
+
+  auctionEnd: {
+    type: Date
+  },
+
+  reservePrice: {
+    type: Number,
+    min: 0
+  },
+
+  highestBid: {
+    amount: {
+      type: Number,
+      default: 0
+    },
+    currency: {
+      type: String,
+      default: "USD"
+    },
+    bidId: {
+       type: mongoose.Schema.Types.ObjectId,
+       ref: "Bid"
+    }
+  },
+
+  highestBidder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+
+  bidCount: {
+    type: Number,
+    default: 0
+  },
+
+  // --- Sale History ---
+  isSold: {
+    type: Boolean,
+    default: false
+  },
+
+  soldTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+
+  soldPrice: {
+    amount: Number,
+    currency: String
+  },
+
+  soldAt: {
+    type: Date
   }
 
 }, { timestamps: true });

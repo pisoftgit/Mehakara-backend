@@ -8,4 +8,6 @@ router.get('/artist', protect, offerController.getArtistOffers);
 router.get('/my-offers', protect, offerController.getUserOffers);
 router.patch('/:id/status', protect, offerController.updateOfferStatus);
 
+router.patch('/:id/withdraw', protect, offerController.withdrawOffer);
+
 module.exports = router;

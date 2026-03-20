@@ -76,15 +76,15 @@ const fetchExchangeRates = async () => {
     // Fallback rates in case API fails
     return {
       USD: 1,
-      EUR: 0.85,
-      GBP: 0.73,
-      JPY: 110,
-      CAD: 1.25,
-      AUD: 1.35,
-      CHF: 0.92,
-      CNY: 6.45,
-      INR: 74.5,
-      KRW: 1180
+      EUR: 0.87,    
+      GBP: 0.75,   
+      JPY: 158.39,  
+      CAD: 1.37,    
+      AUD: 1.41,    
+      CHF: 0.79,    
+      CNY: 6.89,    
+      INR: 93.31,   
+      KRW: 1497.20  
     };
   }
 };
