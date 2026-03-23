@@ -39,12 +39,15 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // Reject orders for artworks marked as unavailable
+    // Reject orders for artworks marked as unavailable (unless it's the winning bidder)
     if (!artwork.isAvailable) {
-      return res.status(400).json({
-        success: false,
-        message: 'This artwork is not available for purchase'
-      });
+      const isWinningBidder = artwork.highestBidder && artwork.highestBidder.toString() === buyerId.toString();
+      if (!isWinningBidder) {
+        return res.status(400).json({
+          success: false,
+          message: 'This artwork is not available for purchase'
+        });
+      }
     }
     
     // Security check: Only apply negotiated price if there's a valid accepted offer
