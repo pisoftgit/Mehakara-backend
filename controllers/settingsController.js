@@ -20,6 +20,37 @@ exports.getSettings = async (req, res) => {
       ],
       storyVideo1: settingsMap.storyVideo1 || "/bannerVideo.mp4",
       storyVideo2: settingsMap.storyVideo2 || "/bannerVideo2.mp4",
+      
+      // About Page Defaults
+      aboutHero: settingsMap.aboutHero || {
+        experience: "20 years of global architectural storytelling and award-winning projects.",
+        goal: "Transforming visions into timeless designs with high-end precision.",
+        mainImage: "/images/Mehak.png",
+        floatImage1: "/images/sun.png",
+        floatImage2: "/images/echoes.png"
+      },
+      aboutStats: settingsMap.aboutStats || [
+        { label: 'Years', value: '12' },
+        { label: 'Clients', value: '10k+' },
+        { label: 'Global', value: '32+' },
+        { label: 'Sales', value: '124k+' }
+      ],
+      aboutPhilosophy: settingsMap.aboutPhilosophy || {
+        title: "THE POETIC NATURE OF DESIGN",
+        philosophyText: "Design is the bridge between the digital soul and the physical world.",
+        philosophyQuote: "Innovation is our only tradition.",
+        philosophyImage: "/images/echoes.png"
+      },
+      aboutApproach: settingsMap.aboutApproach || {
+        mainImage: "/images/sun.png",
+        title: "Emotional Geometry",
+        subtitle: "Every project begins with a silence. We listen to the space until it tells us what it needs to become.",
+        points: [
+          { title: "Conceptual Purity", text: "Stripping away the noise to find the core essence of every structure we build. Purity is the perfect arrangement of detail." },
+          { title: "Digital Evolution", text: "Blending traditional craftsmanship with the infinite possibilities of the digital realm to create spaces that breathe." }
+        ]
+      },
+
       ...settingsMap
     };
 
