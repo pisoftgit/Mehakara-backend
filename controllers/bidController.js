@@ -272,3 +272,60 @@ exports.getAllBidsAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// --- 6. ACCEPT A BID (FOR ARTIST) ---
+exports.acceptBid = async (req, res) => {
+  try {
+    const { bidId } = req.params;
+    const artistId = req.user._id;
+
+    const bid = await Bid.findById(bidId).populate('artworkId bidderId');
+    if (!bid) {
+      return res.status(404).json({ success: false, message: 'Bid not found' });
+    }
+
+    const artwork = await Artwork.findById(bid.artworkId._id);
+    if (!artwork) {
+      return res.status(404).json({ success: false, message: 'Artwork not found' });
+    }
+
+    if (artwork.artist.toString() !== artistId.toString()) {
+      return res.status(403).json({ success: false, message: 'You can only accept bids on your own artworks' });
+    }
+
+    if (artwork.isSold) {
+      return res.status(400).json({ success: false, message: 'Artwork is already sold' });
+    }
+
+    // Mark this bid as 'won'
+    bid.status = 'won';
+    await bid.save();
+
+    // Mark other active/outbid bids as 'lost'
+    await Bid.updateMany(
+      { artworkId: artwork._id, _id: { $ne: bid._id }, status: { $in: ['active', 'outbid'] } },
+      { status: 'lost' }
+    );
+
+    // Update Offer status to 'accepted' so user can checkout
+    await Offer.findOneAndUpdate(
+      { artworkId: artwork._id, buyerId: bid.bidderId._id },
+      { status: 'accepted' }
+    );
+
+    // Notify Bidder
+    await Notification.create({
+      recipientId: bid.bidderId._id,
+      type: 'bid_accepted',
+      title: 'Bid Accepted!',
+      message: `Your bid on "${artwork.title}" has been accepted by the artist. You can now proceed to checkout.`,
+      artworkId: artwork._id,
+      actionUrl: `/offers` // User can see accepted offers here to checkout
+    });
+
+    res.status(200).json({ success: true, message: 'Bid accepted successfully', data: bid });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

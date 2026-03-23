@@ -19,6 +19,9 @@ router.get('/artist/my-artworks', protect, bidController.getArtistBids);
 // Withdraw a bid (PROTECTED)
 router.patch('/:bidId/withdraw', protect, bidController.withdrawBid);
 
+// Accept a bid (ARTIST)
+router.patch('/:bidId/accept', protect, bidController.acceptBid);
+
 // Get all bids (ADMIN)
 router.get('/admin/all', protect, bidController.getAllBidsAdmin);
 
