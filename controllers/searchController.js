@@ -20,18 +20,28 @@ exports.masterSearch = async (req, res) => {
     }
 
     const searchRegex = new RegExp(query, 'i');
+    const isArtist = req.user.role === 'artist';
+    const isAdmin = req.user.role === 'admin';
 
     // Search Artworks
-    const artworks = await Artwork.find({
+    const artworkQuery = {
       $or: [
         { title: searchRegex },
         { artworkCode: searchRegex },
       ],
-    })
+    };
+    if (isArtist) {
+      artworkQuery.artist = req.user._id;
+    }
+
+    const artworks = await Artwork.find(artworkQuery)
       .limit(5)
       .select('title artworkCode images price currency');
 
     // Search Users (Artists and regular users)
+    // For admin: search all users. 
+    // For artists: search other artists or potential buyers? 
+    // Let's allow searching all for name, but admin gets email too.
     const users = await User.find({
       $or: [
         { name: searchRegex },
@@ -39,15 +49,20 @@ exports.masterSearch = async (req, res) => {
       ],
     })
       .limit(5)
-      .select('name email role');
+      .select(isAdmin ? 'name email role' : 'name role');
 
     // Search Orders
-    const orders = await Order.find({
+    const orderQuery = {
       $or: [
         { orderId: searchRegex },
         { 'shippingAddress.name': searchRegex },
       ],
-    })
+    };
+    if (isArtist) {
+      orderQuery.artistId = req.user._id;
+    }
+
+    const orders = await Order.find(orderQuery)
       .limit(5)
       .select('orderId status totalAmount');
 
