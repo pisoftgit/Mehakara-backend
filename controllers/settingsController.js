@@ -12,6 +12,14 @@ exports.getSettings = async (req, res) => {
     const finalSettings = {
       heroTagline: settingsMap.heroTagline || "Bring the Soul of Fine Art Into Your Space.",
       heroDescription: settingsMap.heroDescription || "Explore a curated collection of original masterpieces at Mehakāra gallery. From contemporary abstracts to timeless textures, find the piece that speaks to your story.",
+      artistStory: settingsMap.artistStory || [
+        { time: 0, title: "Essence of Aurora", text: "Fluid art that flows like the first light of dawn." },
+        { time: 4, title: "Where Colour Breathes", text: "Shimmering metallic gold meets dreamy pastel skies." },
+        { time: 8, title: "Art With a Soul", text: "Four canvases. One radiant essence." },
+        { time: 12, title: "Bring It Home", text: "Own a piece of Mehakāra and let art live in your space." }
+      ],
+      storyVideo1: settingsMap.storyVideo1 || "/bannerVideo.mp4",
+      storyVideo2: settingsMap.storyVideo2 || "/bannerVideo2.mp4",
       ...settingsMap
     };
 
@@ -42,6 +50,24 @@ exports.updateSettings = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Settings updated successfully' });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.uploadMedia = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const filePath = `uploads/settings/${req.file.filename}`;
+    res.status(200).json({ 
+      success: true, 
+      message: "Media uploaded", 
+      url: `/` + filePath.replace(/\\/g, '/')
+    });
+  } catch (error) {
+    console.error("Media Upload Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

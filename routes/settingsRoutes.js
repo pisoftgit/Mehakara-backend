@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const settingsController = require('../controllers/settingsController');
-const { protect, restrictTo } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/authMiddleware');
+const uploadSettings = require('../middlewares/uploadSettings');
 
-// Get all dynamic settings (PUBLIC)
+// GET settings (Public)
 router.get('/', settingsController.getSettings);
 
-// Update settings (ADMIN ONLY)
-router.patch('/', protect, restrictTo('admin'), settingsController.updateSettings);
+// PATCH settings (Admin Only)
+router.patch('/', protect, settingsController.updateSettings);
+
+// POST upload media (Admin Only)
+router.post('/upload', protect, uploadSettings.single('file'), settingsController.uploadMedia);
 
 module.exports = router;
