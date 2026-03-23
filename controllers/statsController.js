@@ -12,13 +12,13 @@ exports.getAdminStats = async (req, res) => {
     
     // Get recent artworks
     const recentArtworks = await Artwork.find()
-      .populate('artistId', 'name')
+      .populate('artist', 'name')
       .sort({ createdAt: -1 })
       .limit(6);
 
     // Get highest value listing
     const featuredArtwork = await Artwork.findOne()
-      .populate('artistId', 'name')
+      .populate('artist', 'name')
       .sort({ price: -1 });
 
     res.status(200).json({
@@ -50,8 +50,8 @@ exports.getAdminStats = async (req, res) => {
 
 exports.getArtistStats = async (req, res) => {
   try {
-    const totalArtworks = await Artwork.countDocuments({ artistId: req.user._id });
-    const orders = await Order.find({ 'items.artistId': req.user._id, status: 'delivered' });
+    const totalArtworks = await Artwork.countDocuments({ artist: req.user._id });
+    const orders = await Order.find({ artistId: req.user._id, status: 'delivered' });
     const totalEarnings = orders.reduce((sum, order) => sum + order.totalAmount, 0);
 
     res.status(200).json({
