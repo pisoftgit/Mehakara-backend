@@ -19,8 +19,8 @@ exports.placeBid = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Artwork not found' });
     }
 
-    if (!artwork.isAvailable || artwork.isSold) {
-      return res.status(400).json({ success: false, message: 'Artwork is already sold or not available' });
+    if (!artwork.isAvailable || artwork.isSold || artwork.isBidAccepted) {
+      return res.status(400).json({ success: false, message: 'Artwork is already sold, bid accepted, or not available' });
     }
 
     // Artist cannot bid on their own artwork
@@ -293,8 +293,8 @@ exports.acceptBid = async (req, res) => {
       return res.status(403).json({ success: false, message: 'You can only accept bids on your own artworks' });
     }
 
-    if (artwork.isSold) {
-      return res.status(400).json({ success: false, message: 'Artwork is already sold' });
+    if (artwork.isSold || artwork.isBidAccepted) {
+      return res.status(400).json({ success: false, message: 'Artwork is already sold or a bid has already been accepted' });
     }
 
     // Mark this bid as 'won'
@@ -306,6 +306,11 @@ exports.acceptBid = async (req, res) => {
       { artworkId: artwork._id, _id: { $ne: bid._id }, status: { $in: ['active', 'outbid'] } },
       { status: 'lost' }
     );
+
+    // Update Artwork status
+    artwork.isBidAccepted = true;
+    artwork.isAvailable = false;
+    await artwork.save();
 
     // Update Offer status to 'accepted' so user can checkout
     await Offer.findOneAndUpdate(

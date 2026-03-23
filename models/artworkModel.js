@@ -234,6 +234,11 @@ const artworkSchema = new mongoose.Schema({
     default: 0
   },
 
+  isBidAccepted: {
+    type: Boolean,
+    default: false
+  },
+
   // --- Sale History ---
   isSold: {
     type: Boolean,

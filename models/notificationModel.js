@@ -21,6 +21,7 @@ const notificationSchema = new mongoose.Schema(
         'offer_accepted',
         'offer_rejected',
         'bid_received',
+        'bid_accepted',
         'outbid'
       ],
       required: true
