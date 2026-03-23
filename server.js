@@ -57,6 +57,7 @@ const inquiriesRoutes = require('./routes/inquiryRoutes');
 const bidRoutes = require('./routes/bidRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const statsRoutes = require('./routes/statsRoutes');
 
 
 
@@ -86,6 +87,7 @@ app.use('/api/inquiries',inquiriesRoutes );
 app.use('/api/bids', bidRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/stats', statsRoutes);
 
 
 
