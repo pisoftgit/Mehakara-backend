@@ -435,3 +435,72 @@ exports.getAllAdmins = async (req, res) => {
     });
   }
 };
+
+
+// GET ALL USERS (with pagination, role filter, search) - Admin only
+exports.getAllUsers = async (req, res) => {
+  try {
+    const { role, search, page = 1, limit = 10 } = req.query;
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+
+    let query = {};
+
+    // Filter by role if provided
+    if (role && ['artist', 'user'].includes(role)) {
+      query.role = role;
+    } else {
+      // By default exclude admins — show only artists and buyers
+      query.role = { $in: ['artist', 'user'] };
+    }
+
+    // Search by name or email
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const total = await User.countDocuments(query);
+    const users = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+
+    // For artists, also fetch their profile data
+    let usersWithProfiles = users;
+    if (role === 'artist' || !role) {
+      const artistIds = users.filter(u => u.role === 'artist').map(u => u._id);
+      if (artistIds.length > 0) {
+        const profiles = await ArtistProfile.find({ user: { $in: artistIds } });
+        const profileMap = {};
+        profiles.forEach(p => { profileMap[p.user.toString()] = p; });
+
+        usersWithProfiles = users.map(u => {
+          const userObj = u.toObject();
+          if (u.role === 'artist' && profileMap[u._id.toString()]) {
+            userObj.artistProfile = profileMap[u._id.toString()];
+          }
+          return userObj;
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / limitNum),
+      users: usersWithProfiles
+    });
+
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+};

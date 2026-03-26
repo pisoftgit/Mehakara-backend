@@ -52,5 +52,6 @@ router.post('/deactivate', protect, deactivateMe);
 router.post('/create-admin', protect, restrictTo('admin'), uploadAdminAvatar.single('avatar'), createAdmin);
 router.delete('/admin/:id', protect, restrictTo('admin'), deleteAdmin);
 router.get('/admins', protect, restrictTo('admin'), getAllAdmins);
+router.get('/users', protect, restrictTo('admin'), require('../controllers/authController').getAllUsers);
 
 module.exports = router;
