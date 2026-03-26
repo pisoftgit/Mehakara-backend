@@ -1,11 +1,9 @@
 const Artwork = require('../models/artworkModel')
+const User = require('../models/userModel');
 
 /* GENERATE RANDOM ARTWORK CODE */
 const generateArtworkCode = () => {
-  return Math.random()
-    .toString(36)
-    .substring(2, 8)
-    .toUpperCase()
+  return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
 /* CREATE ARTWORK */
@@ -18,6 +16,13 @@ exports.createArtwork = async (req, res) => {
         message: 'Only artists can upload artworks'
       })
     }
+    const user = await User.findById(req.user.id);
+    if (!user || !user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is deactivated'
+      });
+    }
 
     const imagePaths = req.files
       ? req.files.map(file => file.path.replace(/\\/g, '/'))
@@ -25,7 +30,7 @@ exports.createArtwork = async (req, res) => {
 
     const price = Number(req.body.price)
 
-    if (!price || price < 0) {
+    if (isNaN(price) || price < 0) {
       return res.status(400).json({
         success: false,
         message: 'Invalid price'
@@ -35,12 +40,15 @@ exports.createArtwork = async (req, res) => {
     const currency = req.body.currency || 'USD'
 
     // Calculate base price in USD for consistent storage
-    let basePriceUSD = price;
+    let basePriceUSD = price
     if (currency !== 'USD') {
-      const Currency = require('../models/currencyModel');
-      const artworkCurrency = await Currency.findOne({ code: currency.toUpperCase(), isActive: true });
+      const Currency = require('../models/currencyModel')
+      const artworkCurrency = await Currency.findOne({
+        code: currency.toUpperCase(),
+        isActive: true
+      })
       if (artworkCurrency) {
-        basePriceUSD = price / artworkCurrency.exchangeRate;
+        basePriceUSD = price / artworkCurrency.exchangeRate
       }
     }
 
@@ -65,7 +73,8 @@ exports.createArtwork = async (req, res) => {
       basePriceUSD: Number(basePriceUSD.toFixed(2)),
       category: req.body.categoryId || req.body.category,
       subCategory: req.body.subCategoryId || req.body.subCategory,
-      nestedSubCategory: req.body.nestedSubCategoryId || req.body.nestedSubCategory,
+      nestedSubCategory:
+        req.body.nestedSubCategoryId || req.body.nestedSubCategory,
       size: req.body.sizeId || req.body.size,
       orientation: req.body.orientationId || req.body.orientation,
       medium: req.body.mediumId || req.body.medium,
@@ -110,10 +119,17 @@ exports.getArtworks = async (req, res) => {
 
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
+    const activeArtists = await User.find({
+      role: 'artist',
+      isActive: true
+    }).select('_id');
+
+    const activeArtistIds = activeArtists.map(a => a._id);
 
     let query = {
       status: 'approved',
-      isAvailable: true
+      isAvailable: true,
+      artist: { $in: activeArtistIds }
     };
 
     // 1. Standard Filters
@@ -132,19 +148,16 @@ exports.getArtworks = async (req, res) => {
       if (priceMax) query.price.$lte = Number(priceMax);
     }
 
-    // 3. MULTI-FIELD SEARCH (Title, Artist Name, and Artwork Code)
+    // 3. SEARCH 
     if (search) {
-      const User = require('../models/userModel'); 
-      
-      // Find IDs of artists whose names match the search string
       const matchingArtists = await User.find({
         name: { $regex: search, $options: 'i' },
-        role: 'artist'
+        role: 'artist',
+        isActive: true
       }).select('_id');
 
       const artistIds = matchingArtists.map(artist => artist._id);
 
-      // Search matches if it hits the Title OR the Code OR is by a matching Artist
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
         { artworkCode: { $regex: search, $options: 'i' } },
@@ -160,9 +173,9 @@ exports.getArtworks = async (req, res) => {
 
     const skip = (pageNumber - 1) * limitNumber;
 
-    // 5. Execution
+    // 5. Fetch Data
     const artworks = await Artwork.find(query)
-      .populate('artist', 'name email')
+      .populate('artist', 'name email') // safe now (already filtered)
       .populate('category', 'name')
       .populate('subCategory', 'name')
       .populate('nestedSubCategory', 'name')
@@ -184,6 +197,7 @@ exports.getArtworks = async (req, res) => {
       pages: Math.ceil(total / limitNumber),
       artworks
     });
+
   } catch (error) {
     console.error('GET ARTWORKS ERROR:', error);
     res.status(500).json({
@@ -192,12 +206,18 @@ exports.getArtworks = async (req, res) => {
     });
   }
 };
+
+
 /* GET SINGLE ARTWORK */
 
 exports.getArtworkById = async (req, res) => {
   try {
     const artwork = await Artwork.findById(req.params.id)
-      .populate('artist', 'name email')
+      .populate({
+        path: 'artist',
+        select: 'name email isActive',
+        match: { isActive: true } // 🚀 KEY
+      })
       .populate('category', 'name')
       .populate('subCategory', 'name')
       .populate('nestedSubCategory', 'name')
@@ -207,7 +227,8 @@ exports.getArtworkById = async (req, res) => {
       .populate('material', 'name')
       .populate('theme', 'name')
 
-    if (!artwork) {
+    // 🚀 If artist inactive OR artwork missing
+    if (!artwork || !artwork.artist) {
       return res.status(404).json({
         success: false,
         message: 'Artwork not found'
@@ -220,7 +241,6 @@ exports.getArtworkById = async (req, res) => {
     })
   } catch (error) {
     console.error('GET ARTWORK ERROR:', error)
-
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -240,7 +260,13 @@ exports.updateArtwork = async (req, res) => {
         message: 'Artwork not found'
       })
     }
-
+    const user = await User.findById(req.user.id);
+    if (!user || !user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account deactivated'
+      });
+    }
     if (
       req.user.role !== 'admin' &&
       artwork.artist.toString() !== req.user.id
@@ -264,7 +290,8 @@ exports.updateArtwork = async (req, res) => {
 
     if (req.body.categoryId) req.body.category = req.body.categoryId
     if (req.body.subCategoryId) req.body.subCategory = req.body.subCategoryId
-    if (req.body.nestedSubCategoryId) req.body.nestedSubCategory = req.body.nestedSubCategoryId
+    if (req.body.nestedSubCategoryId)
+      req.body.nestedSubCategory = req.body.nestedSubCategoryId
     if (req.body.sizeId) req.body.size = req.body.sizeId
     if (req.body.orientationId) req.body.orientation = req.body.orientationId
     if (req.body.mediumId) req.body.medium = req.body.mediumId
@@ -313,11 +340,43 @@ exports.deleteArtwork = async (req, res) => {
       })
     }
 
+    const user = await User.findById(req.user.id);
+    if (!user || !user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account deactivated'
+      });
+    }
+
+    // 1. Already sold
+    if (artwork.isSold) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete: artwork is already sold'
+      })
+    }
+
+    // 2. Has bids
+    if (artwork.bidCount > 0 || artwork.highestBid?.amount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete: artwork has active bids'
+      })
+    }
+
+    // 3. Bid accepted
+    if (artwork.isBidAccepted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete: bid already accepted'
+      })
+    }
+
     await artwork.deleteOne()
 
     res.status(200).json({
       success: true,
-      message: 'Artwork deleted'
+      message: 'Artwork deleted successfully'
     })
   } catch (error) {
     console.error('DELETE ARTWORK ERROR:', error)
@@ -403,10 +462,15 @@ exports.toggleAvailability = async (req, res) => {
     const artwork = await Artwork.findById(req.params.id)
 
     if (!artwork) {
-      return res.status(404).json({ success: false, message: 'Artwork not found' })
+      return res
+        .status(404)
+        .json({ success: false, message: 'Artwork not found' })
     }
 
-    if (artwork.artist.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (
+      artwork.artist.toString() !== req.user.id &&
+      req.user.role !== 'admin'
+    ) {
       return res.status(403).json({ success: false, message: 'Not authorized' })
     }
 
@@ -415,7 +479,8 @@ exports.toggleAvailability = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Artwork marked as ${artwork.isAvailable ? 'available' : 'not available'}`,
+      message: `Artwork marked as ${artwork.isAvailable ? 'available' : 'not available'
+        }`,
       isAvailable: artwork.isAvailable
     })
   } catch (error) {
