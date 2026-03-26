@@ -20,6 +20,6 @@ const fileFilter = (req, file, cb) => {
   else cb(new Error('Only image files allowed!'), false);
 };
 
-const uploadBuyerAvatar = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+const uploadBuyerAvatar = multer({ storage, fileFilter, limits: { fileSize: 300 * 1024 } });
 
 module.exports = uploadBuyerAvatar;
