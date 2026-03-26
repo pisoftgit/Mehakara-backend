@@ -30,7 +30,7 @@ router.put(
 router.get('/me', protect, getProfile);
 
 // GET artist profile by user ID
-router.get('/:userId', protect, getProfileById);
+router.get('/:userId', getProfileById);
 
 // DELETE artist profile (only artist)
 router.delete('/', protect, deleteProfile);
