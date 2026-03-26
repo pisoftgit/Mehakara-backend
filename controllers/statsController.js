@@ -52,14 +52,16 @@ exports.getArtistStats = async (req, res) => {
   try {
     const totalArtworks = await Artwork.countDocuments({ artist: req.user._id });
     const orders = await Order.find({ artistId: req.user._id, status: 'delivered' });
+    const pendingOrdersCount = await Order.countDocuments({ artistId: req.user._id, status: { $in: ['pending', 'processing'] } });
     const totalEarnings = orders.reduce((sum, order) => sum + order.totalAmount, 0);
 
     res.status(200).json({
       success: true,
       data: {
         totalArtworks,
-        totalEarnings,
-        totalSales: orders.length
+        totalRevenue: totalEarnings,
+        soldArtworks: orders.length,
+        pendingOrders: pendingOrdersCount
       }
     });
   } catch (error) {
