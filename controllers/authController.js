@@ -341,12 +341,19 @@ exports.createAdmin = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Handle avatar upload
+    let avatarPath = null;
+    if (req.file) {
+      avatarPath = req.file.path.replace(/\\/g, '/');
+    }
+
     // Create admin
     const admin = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: 'admin'
+      role: 'admin',
+      avatar: avatarPath
     });
 
     res.status(201).json({
@@ -356,7 +363,8 @@ exports.createAdmin = async (req, res) => {
         id: admin._id,
         name: admin.name,
         email: admin.email,
-        role: admin.role
+        role: admin.role,
+        avatar: admin.avatar
       }
     });
 
