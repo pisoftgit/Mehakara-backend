@@ -54,4 +54,12 @@ router.delete('/admin/:id', protect, restrictTo('admin'), deleteAdmin);
 router.get('/admins', protect, restrictTo('admin'), getAllAdmins);
 router.get('/users', protect, restrictTo('admin'), require('../controllers/authController').getAllUsers);
 
+
+router.put(
+  '/users/:id/toggle-status',
+  protect,
+  restrictTo('admin'),
+  require('../controllers/authController').toggleUserStatus
+);
+
 module.exports = router;

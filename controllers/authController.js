@@ -201,6 +201,45 @@ exports.deactivateMe = async (req, res) => {
   }
 };
 
+exports.toggleUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Prevent admin disabling themselves
+    if (req.user._id.toString() === id) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot deactivate yourself'
+      });
+    }
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      isActive: user.isActive
+    });
+
+  } catch (error) {
+    console.error('TOGGLE USER STATUS ERROR:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
 
 // FORGOT PASSWORD (OTP)
 exports.forgotPassword = async (req, res) => {
@@ -384,7 +423,7 @@ exports.deleteAdmin = async (req, res) => {
     const { id } = req.params;
 
     // Prevent self-deletion
-    if (user._id.toString() === id) {
+    if (req.user._id.toString() === id) {
       return res.status(400).json({
         success: false,
         message: 'You cannot delete your own admin account'
