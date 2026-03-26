@@ -216,7 +216,7 @@ exports.getArtworkById = async (req, res) => {
       .populate({
         path: 'artist',
         select: 'name email isActive',
-        match: { isActive: true } // 🚀 KEY
+        match: { isActive: true } // KEY
       })
       .populate('category', 'name')
       .populate('subCategory', 'name')
@@ -227,7 +227,7 @@ exports.getArtworkById = async (req, res) => {
       .populate('material', 'name')
       .populate('theme', 'name')
 
-    // 🚀 If artist inactive OR artwork missing
+    //  If artist inactive OR artwork missing
     if (!artwork || !artwork.artist) {
       return res.status(404).json({
         success: false,
