@@ -48,12 +48,30 @@ exports.getAdminStats = async (req, res) => {
   }
 };
 
+
 exports.getArtistStats = async (req, res) => {
   try {
-    const totalArtworks = await Artwork.countDocuments({ artist: req.user._id });
-    const orders = await Order.find({ artistId: req.user._id, status: 'delivered' });
-    const pendingOrdersCount = await Order.countDocuments({ artistId: req.user._id, status: { $in: ['pending', 'processing'] } });
-    const totalEarnings = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const mongoose = require('mongoose');
+    const artistId = new mongoose.Types.ObjectId(req.user._id);
+
+    console.log("ARTIST ID:", artistId);
+
+    const totalArtworks = await Artwork.countDocuments({ artist: artistId });
+
+    const orders = await Order.find({ 
+      artistId: artistId, 
+      status: 'delivered' 
+    });
+
+    const pendingOrdersCount = await Order.countDocuments({ 
+      artistId: artistId, 
+      status: { $in: ['pending', 'confirmed'] } // FIXED
+    });
+
+    const totalEarnings = orders.reduce(
+      (sum, order) => sum + order.totalAmount, 
+      0
+    );
 
     res.status(200).json({
       success: true,
@@ -64,7 +82,9 @@ exports.getArtistStats = async (req, res) => {
         pendingOrders: pendingOrdersCount
       }
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
