@@ -58,6 +58,7 @@ const bidRoutes = require('./routes/bidRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const statsRoutes = require('./routes/statsRoutes');
+const collectionRoutes = require('./routes/collectionRoutes');
 
 
 
@@ -88,6 +89,7 @@ app.use('/api/bids', bidRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/collections', collectionRoutes);
 
 
 
