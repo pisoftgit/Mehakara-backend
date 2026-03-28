@@ -2,44 +2,40 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure upload directory exists
-const uploadDir = 'uploads/settings';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+const uploadPath = 'uploads/about-home';
+
+// Ensure directory exists
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// Set Storage Engine
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    cb(null, `setting-${Date.now()}${path.extname(file.originalname)}`);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-// Check File Type
-const checkFileType = (file, cb) => {
-  // Allowed ext
-  const filetypes = /jpeg|jpg|png|gif|mp4|mov|avi|webm/;
-  // Check ext
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  // Check mime
-  const mimetype = filetypes.test(file.mimetype);
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi|webm/;
+  const isTypeValid = allowedTypes.test(path.extname(file.originalname).toLowerCase()) && 
+                     allowedTypes.test(file.mimetype);
 
-  if (mimetype && extname) {
-    return cb(null, true);
+  if (isTypeValid) {
+    cb(null, true);
   } else {
-    cb(new Error('Only Images and Videos are allowed!'));
+    cb(new Error('Only images (jpg, png, webp) are allowed!'), false);
   }
 };
 
-// Init Upload
 const uploadSettings = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
-  fileFilter: (req, file, cb) => {
-    checkFileType(file, cb);
+  fileFilter: fileFilter,
+  limits: { 
+    fileSize: 300 * 1024 // Strict 300KB limit
   }
 });
 
