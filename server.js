@@ -90,7 +90,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/collections', collectionRoutes);
-app.use('/api/payment-modes', paymentModeRoutes);
+app.use('/api/paymentmodes', paymentModeRoutes);
 
 
 
