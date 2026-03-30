@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { protect } = require("../middlewares/authMiddleware");
+const { protect ,restrictTo} = require("../middlewares/authMiddleware");
 const uploadCollection = require("../middlewares/uploadCollection");
 const collectionController = require("../controllers/collectionController");
 
 // Public routes
 router.get("/", collectionController.getCollections);
+router.get("/all-collections",protect, restrictTo("admin"), collectionController.getAllCollectionsAdmin);
 router.get("/:id", collectionController.getCollectionById);
 
 // Protected routes (Artist/Admin only)

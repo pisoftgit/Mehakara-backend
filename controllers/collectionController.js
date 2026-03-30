@@ -33,14 +33,14 @@ exports.getCollections = async (req, res) => {
     const activeArtists = await User.find({ role: 'artist', isActive: true }).select('_id');
     const activeArtistIds = activeArtists.map(a => a._id);
 
-    const collections = await Collection.find({ 
+    const collections = await Collection.find({
       isActive: true,
       artist: { $in: activeArtistIds }
     })
       .populate("artist", "name email profileImage")
       .populate({
-         path: "artworks",
-         select: "title price images currency isAvailable isSold"
+        path: "artworks",
+        select: "title price images currency isAvailable isSold"
       })
       .sort({ createdAt: -1 });
 
@@ -52,6 +52,55 @@ exports.getCollections = async (req, res) => {
   } catch (error) {
     console.error("GET COLLECTIONS ERROR:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+exports.getAllCollectionsAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    if (req.query.isActive !== undefined) {
+      filter.isActive = req.query.isActive === "true";
+    }
+
+    if (req.query.artist) {
+      filter.artist = req.query.artist;
+    }
+
+    if (req.query.search) {
+      filter.title = { $regex: req.query.search, $options: "i" };
+    }
+
+    const total = await Collection.countDocuments(filter);
+
+    const collections = await Collection.find(filter)
+      .populate("artist", "name email profileImage")
+      .populate({
+        path: "artworks",
+        select: "title price images currency isAvailable isSold"
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      count: collections.length,
+      collections
+    });
+
+  } catch (error) {
+    console.error("ADMIN GET COLLECTIONS ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 };
 
@@ -82,8 +131,8 @@ exports.getCollectionById = async (req, res) => {
     const collection = await Collection.findById(req.params.id)
       .populate("artist", "name email biography profileImage")
       .populate({
-         path: "artworks",
-         populate: { path: "category", select: "name" }
+        path: "artworks",
+        populate: { path: "category", select: "name" }
       });
 
     if (!collection) {
@@ -114,12 +163,12 @@ exports.updateCollection = async (req, res) => {
     }
 
     const { title, description, artworks, isActive } = req.body;
-    
+
     if (title) collection.title = title;
     if (description) collection.description = description;
     if (artworks) collection.artworks = Array.isArray(artworks) ? artworks : JSON.parse(artworks || "[]");
     if (isActive !== undefined) collection.isActive = isActive;
-    
+
     if (req.file) {
       collection.coverImage = req.file.path.replace(/\\/g, "/");
     }
