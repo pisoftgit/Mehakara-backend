@@ -42,13 +42,14 @@ exports.uploadMedia = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file uploaded or file too large." });
     }
 
-    const webPath = `/${req.file.path.replace(/\\/g, '/')}`;
+    const webPath = req.file.path.replace(/\\/g, '/');
 
     res.status(200).json({
       success: true,
       message: "Media synchronized to about-home folder",
       url: webPath
     });
+
   } catch (error) {
     // Handle Multer-specific errors
     if (error.code === 'LIMIT_FILE_SIZE') {

@@ -39,13 +39,13 @@ exports.createProfile = async (req, res) => {
     if (req.files) {
       if (req.files.portfolioImages && req.files.portfolioImages.length > 0) {
         uploadedImages = req.files.portfolioImages.map(file => ({
-          url: `/uploads/artists/${artistId}/${file.filename}`,
+          url: file.path,
           title: file.originalname,
           uploadedAt: new Date()
         }));
       }
       if (req.files.avatar && req.files.avatar.length > 0) {
-        avatarUrl = `/uploads/artists/${artistId}/${req.files.avatar[0].filename}`;
+        avatarUrl = req.files.avatar[0].path;
       }
     }
 
@@ -133,14 +133,14 @@ exports.updateProfile = async (req, res) => {
     if (req.files) {
       if (req.files.portfolioImages && req.files.portfolioImages.length > 0) {
         const uploadedImages = req.files.portfolioImages.map(file => ({
-          url: `/uploads/artists/${targetUserId}/${file.filename}`,
+          url: file.path,
           title: file.originalname,
           uploadedAt: new Date()
         }));
         profile.portfolioImages.push(...uploadedImages);
       }
       if (req.files.avatar && req.files.avatar.length > 0) {
-        profile.avatar = `/uploads/artists/${targetUserId}/${req.files.avatar[0].filename}`;
+        profile.avatar = req.files.avatar[0].path;
       }
     }
 

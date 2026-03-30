@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
+
 const { protect } = require('../middlewares/authMiddleware');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const uploadBuyerAvatar = require('../middlewares/uploadBuyer');
+
 const {
   createProfile,
   updateProfile,
@@ -11,42 +11,26 @@ const {
   deleteProfile
 } = require('../controllers/buyerProfileController');
 
-// Multer setup for avatar uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = `uploads/buyers/${req.user._id}`;
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const filename = `${Date.now()}${ext}`;
-    cb(null, filename);
-  }
-});
+// Create profile
+router.post(
+  '/',
+  protect,
+  uploadBuyerAvatar.single('avatar'),
+  createProfile
+);
 
-const fileFilter = (req, file, cb) => {
-  // Only images allowed
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
+// Update profile
+router.put(
+  '/',
+  protect,
+  uploadBuyerAvatar.single('avatar'),
+  updateProfile
+);
 
-const upload = multer({ storage, fileFilter });
-
-
-// Create profile (buyer only)
-router.post('/', protect, upload.single('avatar'), createProfile);
-
-// Update profile (buyer only)
-router.put('/', protect, upload.single('avatar'), updateProfile);
-
-// Get logged-in buyer profile
+// Get profile
 router.get('/', protect, getProfile);
 
-// Delete buyer profile
+// Delete profile
 router.delete('/', protect, deleteProfile);
 
 module.exports = router;

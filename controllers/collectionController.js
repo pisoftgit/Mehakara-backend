@@ -37,7 +37,7 @@ exports.getCollections = async (req, res) => {
       isActive: true,
       artist: { $in: activeArtistIds }
     })
-      .populate("artist", "name email profileImage")
+      .populate("artist", "name email avatar")
       .populate({
         path: "artworks",
         select: "title price images currency isAvailable isSold"

@@ -1,18 +1,17 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const artistId = req.user.id;
-    const uploadPath = `uploads/collections/${artistId}`;
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    const artistId = req.user?.id || "temp";
+    return {
+      folder: `collections/${artistId}`,
+      format: file.mimetype.split("/")[1],
+      public_id: `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+    };
   },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + path.extname(file.originalname));
-  }
 });
 
 const fileFilter = (req, file, cb) => {
@@ -24,11 +23,12 @@ const fileFilter = (req, file, cb) => {
 };
 
 const uploadCollection = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage,
+  fileFilter,
   limits: {
-    fileSize: 1024 * 1024 // 1MB for collection covers
-  }
+    fileSize: 1024 * 1024, // 1MB
+  },
 });
 
 module.exports = uploadCollection;
+

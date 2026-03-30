@@ -277,13 +277,25 @@ exports.updateArtwork = async (req, res) => {
       })
     }
 
-    const imagePaths = req.files
+    // Handle image updates
+    let updatedImages = artwork.images;
+    
+    // If specifically provided which existing images to keep
+    if (req.body.existingImages) {
+      try {
+        updatedImages = typeof req.body.existingImages === 'string' 
+          ? JSON.parse(req.body.existingImages) 
+          : req.body.existingImages;
+      } catch (e) {
+        console.error("Error parsing existingImages:", e);
+      }
+    }
+
+    const newImagePaths = req.files
       ? req.files.map(file => file.path.replace(/\\/g, '/'))
       : []
 
-    if (imagePaths.length > 0) {
-      artwork.images = [...artwork.images, ...imagePaths]
-    }
+    artwork.images = [...updatedImages, ...newImagePaths];
 
     delete req.body.basePriceUSD
     delete req.body.artworkCode

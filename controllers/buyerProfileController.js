@@ -22,7 +22,7 @@ exports.createProfile = async (req, res) => {
 
     let avatarUrl = null;
     if (req.file) {
-      avatarUrl = `/uploads/buyers/${req.user._id}/${req.file.filename}`;
+      avatarUrl = req.file.path;
     }
 
     const profile = await BuyerProfile.create({
@@ -74,7 +74,7 @@ exports.updateProfile = async (req, res) => {
     // Handle avatar upload
     let avatarUrl;
     if (req.file) {
-      avatarUrl = `/uploads/buyers/${req.user._id}/${req.file.filename}`;
+      avatarUrl = req.file.path;
     }
 
     // Update or create profile
