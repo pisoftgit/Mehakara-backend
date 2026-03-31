@@ -18,10 +18,10 @@ const { protect, restrictTo } = require("../middlewares/authMiddleware");
 router.get("/active", getActivePaymentModes);
 
 /* ADMIN ONLY */
-router.post("/", protect, restrictTo("admin"), createPaymentMode);
-router.get("/", protect, restrictTo("admin"), getAllPaymentModes);
-router.get("/:id", protect, restrictTo("admin"), getPaymentModeById);
-router.put("/:id", protect, restrictTo("admin"), updatePaymentMode);
-router.delete("/:id", protect, restrictTo("admin"), deletePaymentMode);
+router.post("/", protect, restrictTo("admin","superadmin"), createPaymentMode);
+router.get("/", protect, restrictTo("admin","superadmin"), getAllPaymentModes);
+router.get("/:id", protect, restrictTo("admin","superadmin"), getPaymentModeById);
+router.put("/:id", protect, restrictTo("admin","superadmin"), updatePaymentMode);
+router.delete("/:id", protect, restrictTo("admin","superadmin"), deletePaymentMode);
 
 module.exports = router;

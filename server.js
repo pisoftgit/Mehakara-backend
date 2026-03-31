@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "x-recaptcha-token"]
 }));
 
 // Static uploads
@@ -66,6 +66,7 @@ const paymentModeRoutes = require('./routes/paymentModeRoutes');
 
 
 
+
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/subcategories', subCategoryRoutes);
@@ -91,6 +92,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/paymentmodes', paymentModeRoutes);
+
 
 
 

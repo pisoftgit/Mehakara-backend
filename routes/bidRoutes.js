@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bidController = require('../controllers/bidController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 // Get all bids for an artwork (PUBLIC)
 router.get('/artwork/:artworkId', bidController.getArtworkBids);
@@ -23,6 +23,6 @@ router.patch('/:bidId/withdraw', protect, bidController.withdrawBid);
 router.patch('/:bidId/accept', protect, bidController.acceptBid);
 
 // Get all bids (ADMIN)
-router.get('/admin/all', protect, bidController.getAllBidsAdmin);
+router.get('/admin/all', protect, restrictTo('admin', 'superadmin'), bidController.getAllBidsAdmin);
 
 module.exports = router;

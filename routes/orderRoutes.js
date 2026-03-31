@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, restrictTo } = require('../middlewares/authMiddleware');
 const {
   createOrder,
   getAllOrders,
@@ -15,7 +15,7 @@ const {
 router.post('/', protect, createOrder);
 
 // Get all orders (admin only)
-router.get('/admin/all', protect, getAllOrders);
+router.get('/admin/all', protect, restrictTo('admin', 'superadmin'), getAllOrders);
 
 // Get artist's orders
 router.get('/artist/my-orders', protect, getArtistOrders);

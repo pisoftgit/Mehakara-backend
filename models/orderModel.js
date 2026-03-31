@@ -81,7 +81,11 @@ const orderSchema = new mongoose.Schema(
 
     notes: String,
 
-    trackingNumber: String
+    trackingNumber: String,
+
+    deliveryOTP: {
+      type: String
+    }
   },
   {
     timestamps: true

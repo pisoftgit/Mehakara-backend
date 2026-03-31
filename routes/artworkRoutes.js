@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { protect } = require("../middlewares/authMiddleware");
+const { protect ,restrictTo } = require("../middlewares/authMiddleware");
 const uploadArtwork = require("../middlewares/uploadArtwork");
 
 const artworkController = require("../controllers/artworkController");
@@ -14,8 +14,8 @@ router.post(
   artworkController.createArtwork
 );
 
-router.get("/admin/all", protect, artworkController.getAllArtworksAdmin);
-router.get("/", artworkController.getArtworks);
+router.get("/admin/all", protect, restrictTo("admin","superadmin"), artworkController.getAllArtworksAdmin);
+router.get("/", artworkController.getArtworks); 
 
 router.get(
   "/my-artworks",
@@ -28,6 +28,7 @@ router.get("/:id", artworkController.getArtworkById);
 router.patch(
   "/:id/toggle-availability",
   protect,
+  // restrictTo("admin","superadmin"),
   artworkController.toggleAvailability
 );
 

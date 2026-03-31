@@ -130,16 +130,48 @@ exports.createOrder = async (req, res) => {
         message: `New order received for "${artwork.title}"`,
         orderId: order._id,
         artworkId,
-        relatedUserId: buyerId,
-        actionUrl: `/admin-orders/${order._id}`
-      });
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Order created successfully',
-      data: order
+      relatedUserId: buyerId,
+      actionUrl: `/admin-orders/${order._id}`
     });
+  }
+
+  // Generate 6-digit OTP for delivery
+  const crypto = require('crypto');
+  const deliveryOTP = crypto.randomBytes(3).toString('hex').toUpperCase();
+
+  // Log OTP to console for testing purposes
+  console.log(`\n============================`);
+  console.log(`ORDER CREATED: ${order._id}`);
+  console.log(`DELIVERY OTP : ${deliveryOTP}`);
+  console.log(`============================\n`);
+
+  // Save OTP mapped to order but don't return it in the main payload (except maybe during development)
+  order.deliveryOTP = deliveryOTP;
+  await order.save();
+
+  try {
+    const sendEmail = require('../utils/sendEmail');
+    await sendEmail({
+      email: order.shippingAddress.email || req.user.email,
+      subject: 'Mehakara - Order Received & Delivery PIN',
+      message: `Your order for "${artwork.title}" has been successfully placed. Your delivery PIN is: ${deliveryOTP}. Please provide this PIN when receiving your order to mark it as delivered.`,
+      html: `<h3>Order Placed Successfully!</h3>
+             <p>Your order for <b>"${artwork.title}"</b> is confirmed.</p>
+             <div style="background:#f4f4f4;padding:15px;margin:20px 0;text-align:center;">
+               <p style="margin:0;color:#666;font-size:12px;text-transform:uppercase;">Your Secret Delivery PIN</p>
+               <h2 style="margin:5px 0 0;letter-spacing:5px;color:#008080;">${deliveryOTP}</h2>
+             </div>
+             <p>Please provide this PIN to the delivery agent to confirm receipt of your artwork.</p>`
+    });
+  } catch (err) {
+    console.error('Failed to send order OTP email:', err);
+  }
+
+  res.status(201).json({
+    success: true,
+    message: 'Order created successfully',
+    data: order
+  });
   } catch (error) {
     console.error('Create order error:', error);
     res.status(500).json({
@@ -251,7 +283,7 @@ exports.getOrderById = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, trackingNumber } = req.body;
+    const { status, trackingNumber, deliveryOTP } = req.body;
 
     const validStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
@@ -259,6 +291,21 @@ exports.updateOrderStatus = async (req, res) => {
         success: false,
         message: 'Invalid order status'
       });
+    }
+
+    const orderToVerify = await Order.findById(id);
+    if (!orderToVerify) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // OTP Verification for delivery
+    if (status === 'delivered') {
+      if (!deliveryOTP) {
+        return res.status(400).json({ success: false, message: 'Delivery OTP is required for marking the order as delivered.' });
+      }
+      if (orderToVerify.deliveryOTP !== deliveryOTP) {
+        return res.status(400).json({ success: false, message: 'Invalid Delivery OTP' });
+      }
     }
 
     const order = await Order.findByIdAndUpdate(

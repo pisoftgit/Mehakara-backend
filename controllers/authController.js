@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const generateToken = require('../utils/generateToken');
 const ArtistProfile = require('../models/artistProfileModel');
 const BuyerProfile = require('../models/buyerProfileModel');
+const Permission = require('../models/permissionModel');
+const sendEmail = require('../utils/sendEmail');
 
 
 // REGISTER USER
@@ -35,27 +37,41 @@ exports.registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
+    // Generate 6-character alphanumeric OTP
+    const otp = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Create user (unverified)
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role
+      role,
+      verificationOTP: otp,
+      verificationOTPExpires: otpExpires
     });
 
-    // Generate token
-    const token = generateToken(user._id);
+    // For testing: Log OTP to console
+    console.log('--------------------------------------------------');
+    console.log(`REGISTRATION OTP FOR: ${email}`);
+    console.log(`OTP: ${otp}`);
+    console.log('--------------------------------------------------');
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Verify your Mehakara Account',
+        message: `Your account verification OTP is: ${otp}. Valid for 10 minutes.`,
+        html: `<h3>Welcome to Mehakara!</h3><p>Your verification code is: <b>${otp}</b></p>`
+      });
+    } catch (err) {
+      console.log('Email could not be sent', err);
+    }
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      message: 'Registration successful! Please verify your email with the OTP sent.',
+      userId: user._id
     });
 
   } catch (error) {
@@ -104,6 +120,16 @@ exports.loginUser = async (req, res) => {
       });
     }
 
+    // Check if verified
+    if (!user.isVerified) {
+      return res.status(401).json({
+        success: false,
+        message: "Please verify your email to login.",
+        isUnverified: true,
+        userId: user._id
+      });
+    }
+
     // Generate token
     const token = generateToken(user._id);
 
@@ -126,7 +152,8 @@ exports.loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar
+        avatar,
+        permissions: user.permissions || []
       }
     });
 
@@ -146,7 +173,7 @@ exports.loginUser = async (req, res) => {
 // GET ME - Get current user data and profile status
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id).select('-password').populate('permissions');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -253,10 +280,10 @@ exports.forgotPassword = async (req, res) => {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Hash OTP for security
     const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
-    
+
     user.resetOTP = hashedOTP;
     user.resetOTPExpires = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
 
@@ -267,7 +294,7 @@ exports.forgotPassword = async (req, res) => {
     console.log(`PASSWORD RESET OTP FOR: ${email}`);
     console.log(`OTP: ${otp}`);
     console.log('--------------------------------------------------');
-    
+
     res.status(200).json({
       success: true,
       message: 'If your email is registered, you will receive a 6-digit OTP shortly.',
@@ -336,7 +363,7 @@ exports.resetPassword = async (req, res) => {
     // Hash and update new password
     const salt = await bcrypt.genSalt(12);
     user.password = await bcrypt.hash(password, salt);
-    
+
     // Clear OTP fields
     user.resetOTP = undefined;
     user.resetOTPExpires = undefined;
@@ -459,7 +486,7 @@ exports.deleteAdmin = async (req, res) => {
 // GET ALL ADMINS - Only for authenticated admins
 exports.getAllAdmins = async (req, res) => {
   try {
-    const admins = await User.find({ role: 'admin' }).select('-password');
+    const admins = await User.find({ role: 'admin' }).select('-password').populate('permissions');
 
     res.status(200).json({
       success: true,
@@ -472,6 +499,60 @@ exports.getAllAdmins = async (req, res) => {
       success: false,
       message: error.message || 'Server error'
     });
+  }
+};
+
+// --- PERMISSION MODULES ---
+
+exports.getAllPermissions = async (req, res) => {
+  try {
+    const permissions = await Permission.find();
+    res.status(200).json({ success: true, data: permissions });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.createPermission = async (req, res) => {
+  try {
+    const { title, url } = req.body;
+    const permission = await Permission.create({ title, url });
+    res.status(201).json({ success: true, data: permission });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.updatePermission = async (req, res) => {
+  try {
+    const permission = await Permission.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.status(200).json({ success: true, data: permission });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.deletePermission = async (req, res) => {
+  try {
+    await Permission.findByIdAndDelete(req.params.id);
+    res.status(200).json({ success: true, message: 'Permission deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.assignPermissions = async (req, res) => {
+  try {
+    const { adminId, permissionIds } = req.body;
+    const user = await User.findByIdAndUpdate(
+      adminId,
+      { permissions: permissionIds },
+      { new: true }
+    ).populate('permissions');
+    
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -541,5 +622,47 @@ exports.getAllUsers = async (req, res) => {
       success: false,
       message: error.message || 'Server error'
     });
+  }
+};
+
+// VERIFY EMAIL
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.verificationOTP !== otp || user.verificationOTPExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // Mark as verified
+    user.isVerified = true;
+    user.verificationOTP = undefined;
+    user.verificationOTPExpires = undefined;
+    await user.save();
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully!',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

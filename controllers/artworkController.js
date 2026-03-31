@@ -404,7 +404,7 @@ exports.deleteArtwork = async (req, res) => {
 
 exports.getAllArtworksAdmin = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Access denied'

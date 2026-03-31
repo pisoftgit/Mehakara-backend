@@ -7,7 +7,7 @@ const collectionController = require("../controllers/collectionController");
 
 // Public routes
 router.get("/", collectionController.getCollections);
-router.get("/all-collections",protect, restrictTo("admin"), collectionController.getAllCollectionsAdmin);
+router.get("/all-collections",protect, restrictTo("admin","superadmin"), collectionController.getAllCollectionsAdmin);
 router.get("/:id", collectionController.getCollectionById);
 
 // Protected routes (Artist/Admin only)
