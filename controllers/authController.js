@@ -94,7 +94,7 @@ exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('permissions');
 
     if (!user) {
       return res.status(401).json({
