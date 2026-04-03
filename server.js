@@ -60,6 +60,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const collectionRoutes = require('./routes/collectionRoutes');
 const paymentModeRoutes = require('./routes/paymentModeRoutes');
+const paymentCredentialRoutes = require('./routes/paymentCredentialRoutes');
 
 
 
@@ -92,6 +93,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/paymentmodes', paymentModeRoutes);
+app.use('/api/payment-credentials', paymentCredentialRoutes);
 
 
 

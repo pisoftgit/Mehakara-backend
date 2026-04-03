@@ -1,4 +1,98 @@
 const Notification = require('../models/notificationModel');
+const User = require('../models/userModel');
+const sendEmail = require('../utils/sendEmail');
+
+// Send notification from Admin/SuperAdmin to Artist (via email and in-app)
+exports.sendAdminNotification = async (req, res) => {
+  try {
+    // Check if user is admin or superadmin
+    if (!['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admin or superadmin can send notifications'
+      });
+    }
+
+    const { recipientId, title, message, type, orderId, offerId, bidId } = req.body;
+
+    // Validate required fields
+    if (!recipientId || !title || !message || !type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: recipientId, title, message, type'
+      });
+    }
+
+    // Get recipient (artist) details
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipient not found'
+      });
+    }
+
+    // Create notification record
+    const notificationData = {
+      recipientId,
+      type,
+      title,
+      message,
+      isRead: false
+    };
+
+    // Add optional references
+    if (orderId) notificationData.orderId = orderId;
+    if (offerId) notificationData.offerId = offerId;
+    if (bidId) notificationData.bidId = bidId;
+    notificationData.relatedUserId = req.user._id; // Admin who sent the notification
+
+    const notification = await Notification.create(notificationData);
+
+    // Send email to artist
+    try {
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h2 style="margin: 0; color: #333;">${title}</h2>
+            </div>
+            
+            <div style="padding: 20px; background-color: #fff;">
+              <p>${message}</p>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+              <p>Best regards,<br/>Mehakara Admin Team</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      await sendEmail({
+        email: recipient.email,
+        subject: title,
+        message: message,
+        html: emailHtml
+      });
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Continue even if email fails - notification is already created in DB
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Notification sent successfully to artist',
+      data: notification
+    });
+  } catch (error) {
+    console.error('Send admin notification error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error sending notification'
+    });
+  }
+};
 
 // Get all notifications for current user
 exports.getUserNotifications = async (req, res) => {

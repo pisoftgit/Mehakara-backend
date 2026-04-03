@@ -1,3 +1,5 @@
 CHANGE_SUMMARY.md
 node_modules
 .env
+docs
+.example

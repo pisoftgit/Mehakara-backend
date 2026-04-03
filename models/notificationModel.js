@@ -22,7 +22,8 @@ const notificationSchema = new mongoose.Schema(
         'offer_rejected',
         'bid_received',
         'bid_accepted',
-        'outbid'
+        'outbid',
+        'admin_notice'
       ],
       required: true
     },
@@ -40,6 +41,16 @@ const notificationSchema = new mongoose.Schema(
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Order'
+    },
+
+    offerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Offer'
+    },
+
+    bidId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Bid'
     },
 
     artworkId: {

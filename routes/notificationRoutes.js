@@ -8,8 +8,12 @@ const {
   markAllAsRead,
   deleteNotification,
   deleteAllNotifications,
-  getNotificationById
+  getNotificationById,
+  sendAdminNotification
 } = require('../controllers/notificationController');
+
+// Send notification from Admin/SuperAdmin to Artist (email + in-app)
+router.post('/send-to-artist', protect, sendAdminNotification);
 
 // Get all notifications for current user
 router.get('/', protect, getUserNotifications);
