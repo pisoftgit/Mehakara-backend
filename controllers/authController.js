@@ -6,6 +6,9 @@ const ArtistProfile = require('../models/artistProfileModel');
 const BuyerProfile = require('../models/buyerProfileModel');
 const Permission = require('../models/permissionModel');
 const sendEmail = require('../utils/sendEmail');
+const Artwork = require('../models/artworkModel');
+const Order = require('../models/orderModel');
+const Bid = require('../models/bidModel');
 
 
 // REGISTER USER
@@ -591,21 +594,71 @@ exports.getAllUsers = async (req, res) => {
 
     // For artists, also fetch their profile data
     let usersWithProfiles = users;
-    if (role === 'artist' || !role) {
-      const artistIds = users.filter(u => u.role === 'artist').map(u => u._id);
-      if (artistIds.length > 0) {
-        const profiles = await ArtistProfile.find({ user: { $in: artistIds } });
-        const profileMap = {};
-        profiles.forEach(p => { profileMap[p.user.toString()] = p; });
+    
+    // Fetch Artist Profiles and Stats
+    const artistIds = users.filter(u => u.role === 'artist').map(u => u._id);
+    if (artistIds.length > 0) {
+      const [artistProfiles, artistArtworks, artistOrders] = await Promise.all([
+        ArtistProfile.find({ user: { $in: artistIds } }).populate('categories'),
+        Artwork.find({ artist: { $in: artistIds } }),
+        Order.find({ artistId: { $in: artistIds } })
+      ]);
 
-        usersWithProfiles = users.map(u => {
-          const userObj = u.toObject();
-          if (u.role === 'artist' && profileMap[u._id.toString()]) {
-            userObj.artistProfile = profileMap[u._id.toString()];
+      const artistProfileMap = {};
+      artistProfiles.forEach(p => { artistProfileMap[p.user.toString()] = p; });
+
+      usersWithProfiles = usersWithProfiles.map(u => {
+        const userObj = u.toObject();
+        if (u.role === 'artist') {
+          if (artistProfileMap[u._id.toString()]) {
+            userObj.artistProfile = artistProfileMap[u._id.toString()];
           }
-          return userObj;
-        });
-      }
+          const userArtworks = artistArtworks.filter(a => a.artist.toString() === u._id.toString());
+          const userOrders = artistOrders.filter(o => o.artistId.toString() === u._id.toString());
+          userObj.stats = {
+            totalArtworks: userArtworks.length,
+            totalSales: userOrders.filter(o => o.status === 'confirmed' || o.status === 'delivered').length,
+            totalOrders: userOrders.length,
+            totalRevenue: userOrders.filter(o => o.status === 'confirmed' || o.status === 'delivered')
+                                   .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+          };
+          userObj.recentOrders = userOrders.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+        }
+        return userObj;
+      });
+    }
+
+    // Fetch Buyer Profiles and Stats
+    const buyerIds = users.filter(u => u.role === 'user').map(u => u._id);
+    if (buyerIds.length > 0) {
+      const [buyerProfiles, buyerOrders, buyerBids] = await Promise.all([
+        BuyerProfile.find({ user: { $in: buyerIds } }).populate('subcategories'),
+        Order.find({ buyerId: { $in: buyerIds } }).populate('artworkId', 'title images'),
+        Bid.find({ bidderId: { $in: buyerIds } }).populate('artworkId', 'title images')
+      ]);
+
+      const buyerProfileMap = {};
+      buyerProfiles.forEach(p => { buyerProfileMap[p.user.toString()] = p; });
+
+      usersWithProfiles = usersWithProfiles.map(u => {
+        const userObj = u.constructor.name === 'Object' ? u : u.toObject();
+        if (u.role === 'user') {
+          if (buyerProfileMap[u._id.toString()]) {
+            userObj.buyerProfile = buyerProfileMap[u._id.toString()];
+          }
+          const userOrders = buyerOrders.filter(o => o.buyerId.toString() === u._id.toString());
+          const userBids = buyerBids.filter(b => b.bidderId.toString() === u._id.toString());
+          userObj.stats = {
+            totalOrdersPlaced: userOrders.length,
+            totalBidsPlaced: userBids.length,
+            totalSpend: userOrders.filter(o => o.status === 'confirmed' || o.status === 'delivered')
+                                 .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+          };
+          userObj.recentOrders = userOrders.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+          userObj.recentBids = userBids.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+        }
+        return userObj;
+      });
     }
 
     res.status(200).json({
