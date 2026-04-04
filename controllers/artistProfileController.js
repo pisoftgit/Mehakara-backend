@@ -29,7 +29,10 @@ exports.createProfile = async (req, res) => {
       recognition,
       website,
       socialMedia,
-      categories
+      categories,
+      address,
+      deliveryLocations,
+      phoneNumber
     } = req.body;
 
     // Handle uploaded images
@@ -49,7 +52,7 @@ exports.createProfile = async (req, res) => {
       }
     }
 
-    const profile = await ArtistProfile.create({
+    const profileData = {
       user: artistId,
       artistName,
       avatar: avatarUrl,
@@ -60,10 +63,30 @@ exports.createProfile = async (req, res) => {
       qualification,
       recognition,
       website,
-      socialMedia,
-      categories,
       portfolioImages: uploadedImages
-    });
+    };
+
+    if (address) profileData.address = address;
+    
+    if (socialMedia) {
+      profileData.socialMedia = typeof socialMedia === 'string' ? JSON.parse(socialMedia) : socialMedia;
+    }
+    if (deliveryLocations) {
+      profileData.deliveryLocations = typeof deliveryLocations === 'string' ? JSON.parse(deliveryLocations) : deliveryLocations;
+    }
+    if (categories) {
+      profileData.categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+    }
+
+    if (phoneNumber) {
+        const user = await User.findById(artistId);
+        if (user) {
+            user.phoneNumber = phoneNumber;
+            await user.save();
+        }
+    }
+
+    const profile = await ArtistProfile.create(profileData);
 
     res.status(201).json({ success: true, message: 'Artist profile created', profile });
 
@@ -111,7 +134,10 @@ exports.updateProfile = async (req, res) => {
       recognition,
       website,
       socialMedia,
-      categories
+      categories,
+      address,
+      deliveryLocations,
+      phoneNumber
     } = req.body;
 
     if (artistName) {
@@ -126,8 +152,23 @@ exports.updateProfile = async (req, res) => {
     if (qualification) profile.qualification = qualification;
     if (recognition) profile.recognition = recognition;
     if (website) profile.website = website;
-    if (socialMedia) profile.socialMedia = socialMedia;
-    if (categories) profile.categories = categories;
+    if (address) profile.address = address;
+
+    if (socialMedia) {
+      profile.socialMedia = typeof socialMedia === 'string' ? JSON.parse(socialMedia) : socialMedia;
+    }
+    if (deliveryLocations) {
+      profile.deliveryLocations = typeof deliveryLocations === 'string' ? JSON.parse(deliveryLocations) : deliveryLocations;
+    }
+    if (categories) {
+      profile.categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+    }
+
+    if (phoneNumber) {
+        user.phoneNumber = phoneNumber;
+    }
+    
+    await user.save();
 
     // Handle portfolio images and avatar
     if (req.files) {

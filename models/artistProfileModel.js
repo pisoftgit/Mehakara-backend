@@ -23,9 +23,16 @@ const artistProfileSchema = new mongoose.Schema({
   },
   country: { type: String, trim: true },
   state: { type: String, trim: true },
+  address: { type: String, trim: true },
+  deliveryLocations: [
+    {
+      country: { type: String, trim: true },
+      states: [String],
+    }
+  ],
   education: { type: String, trim: true },
   qualification: { type: String, trim: true },
-  recognition: { type: String, trim: true }, 
+  recognition: { type: String, trim: true },
   website: { type: String, trim: true },
   socialMedia: {
     instagram: { type: String, trim: true },
@@ -36,7 +43,7 @@ const artistProfileSchema = new mongoose.Schema({
   },
   portfolioImages: [
     {
-      url: { type: String }, 
+      url: { type: String },
       title: { type: String, trim: true },
       description: { type: String, trim: true },
       uploadedAt: { type: Date, default: Date.now },

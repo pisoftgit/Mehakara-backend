@@ -18,7 +18,7 @@ exports.createProfile = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Profile already exists. Use update API instead.' });
     }
 
-    const { bio, location, subcategories } = req.body;
+    const { bio, location, address, country, state, subcategories, phoneNumber } = req.body;
 
     let avatarUrl = null;
     if (req.file) {
@@ -29,9 +29,20 @@ exports.createProfile = async (req, res) => {
       user: req.user._id,
       bio,
       location,
+      address,
+      country,
+      state,
       subcategories,
       avatar: avatarUrl
     });
+
+    if (phoneNumber) {
+        const user = await User.findById(req.user._id);
+        if (user) {
+            user.phoneNumber = phoneNumber;
+            await user.save();
+        }
+    }
 
     res.status(201).json({ success: true, message: 'Buyer profile created', profile });
 
@@ -54,7 +65,7 @@ exports.updateProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const { name, email, password, bio, location, subcategories } = req.body;
+    const { name, email, password, bio, location, address, country, state, subcategories, phoneNumber } = req.body;
 
     // Update user info if provided
     if (name) user.name = name;
@@ -69,6 +80,7 @@ exports.updateProfile = async (req, res) => {
       const salt = await bcrypt.genSalt(12);
       user.password = await bcrypt.hash(password, salt);
     }
+    if (phoneNumber) user.phoneNumber = phoneNumber;
     await user.save();
 
     // Handle avatar upload
@@ -82,6 +94,9 @@ exports.updateProfile = async (req, res) => {
     if (profile) {
       profile.bio = bio ?? profile.bio;
       profile.location = location ?? profile.location;
+      profile.address = address ?? profile.address;
+      profile.country = country ?? profile.country;
+      profile.state = state ?? profile.state;
       profile.subcategories = subcategories ?? profile.subcategories;
       profile.avatar = avatarUrl ?? profile.avatar;
       await profile.save();
@@ -90,6 +105,9 @@ exports.updateProfile = async (req, res) => {
         user: req.user._id,
         bio,
         location,
+        address,
+        country,
+        state,
         subcategories,
         avatar: avatarUrl || null
       });

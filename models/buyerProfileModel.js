@@ -19,6 +19,9 @@ const buyerProfileSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  address: { type: String, trim: true },
+  country: { type: String, trim: true },
+  state: { type: String, trim: true },
   subcategories: [
     {
       type: mongoose.Schema.Types.ObjectId,

@@ -235,9 +235,16 @@ exports.getArtworkById = async (req, res) => {
       })
     }
 
+    const ArtistProfile = require('../models/artistProfileModel');
     res.status(200).json({
       success: true,
-      artwork
+      artwork: {
+        ...artwork.toObject(),
+        artist: {
+          ...artwork.artist.toObject(),
+          profile: await ArtistProfile.findOne({ user: artwork.artist._id }).select('deliveryLocations address country state')
+        }
+      }
     })
   } catch (error) {
     console.error('GET ARTWORK ERROR:', error)
@@ -279,12 +286,12 @@ exports.updateArtwork = async (req, res) => {
 
     // Handle image updates
     let updatedImages = artwork.images;
-    
+
     // If specifically provided which existing images to keep
     if (req.body.existingImages) {
       try {
-        updatedImages = typeof req.body.existingImages === 'string' 
-          ? JSON.parse(req.body.existingImages) 
+        updatedImages = typeof req.body.existingImages === 'string'
+          ? JSON.parse(req.body.existingImages)
           : req.body.existingImages;
       } catch (e) {
         console.error("Error parsing existingImages:", e);
